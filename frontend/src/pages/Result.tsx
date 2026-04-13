@@ -14,30 +14,41 @@ export default function Result() {
 
   const [data, setData] = useState<ResultData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const API_URL = "http://localhost:8000";
 
   useEffect(() => {
     const fetchResult = async () => {
+      if (!text1 || !text2) {
+        setError("Missing input text");
+        setLoading(false);
+        return;
+      }
+
       try {
-        const res = await axios.post("http://localhost:5000/analyze", {
+        const res = await axios.post(`${API_URL}/analyze`, {
           text1,
           text2,
         });
 
+        console.log("API response:", res.data);
         setData(res.data);
-      } catch (err) {
-        console.error(err);
+      } catch (err: any) {
+        console.error("API Error:", err);
+        setError("Failed to fetch result. Check backend/CORS.");
       } finally {
         setLoading(false);
       }
     };
 
     fetchResult();
-  }, []);
+  }, [text1, text2]);
 
   return (
     <div className="min-h-screen bg-[#030304] text-white flex items-center justify-center p-6">
-      {/* Card */}
       <div className="w-full max-w-3xl bg-white/[0.03] border border-white/10 backdrop-blur-xl rounded-3xl p-10 shadow-2xl">
+
         {/* Header */}
         <h1 className="text-3xl font-bold mb-6 text-center">
           🔍 Analysis Result
@@ -63,8 +74,15 @@ export default function Result() {
           </div>
         )}
 
+        {/* Error */}
+        {error && (
+          <div className="text-red-400 text-center py-4">
+            {error}
+          </div>
+        )}
+
         {/* Result */}
-        {data && (
+        {data && !loading && (
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -86,8 +104,8 @@ export default function Result() {
               <p className="text-sm opacity-70">Paraphrase</p>
               <h2 className="text-2xl font-semibold">
                 {data.paraphrase
-                  ? "Yes, both the sentences are semantically similar"
-                  : "No, different sentences are different"}
+                  ? "Yes, both sentences are semantically similar"
+                  : "No, the sentences are different"}
               </h2>
             </div>
           </motion.div>
