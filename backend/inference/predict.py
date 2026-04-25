@@ -15,17 +15,17 @@ def initialize_models(model_type='mpnet'):
     if _bi_model is None:
         try:
             print(f"Loading Bi-Encoder ({model_type}) to {device_str}...")
-            base_path = os.path.dirname(__file__)
-            mpnet_path = os.path.join(base_path, 'saved_model_mpnet')
-            minilm_path = os.path.join(base_path, 'saved_model_minilm')
+            base_path = os.path.dirname(os.path.dirname(__file__)) # Go up to backend/
+            mpnet_path = os.path.join(base_path, 'models', 'saved_model_mpnet')
+            minilm_path = os.path.join(base_path, 'models', 'saved_model_minilm')
             
             model_name_or_path = "all-mpnet-base-v2"
             if model_type == 'mpnet' and os.path.isdir(mpnet_path):
                 model_name_or_path = mpnet_path
             elif model_type == 'minilm' and os.path.isdir(minilm_path):
                 model_name_or_path = minilm_path
-            elif os.path.isdir(os.path.join(base_path, 'saved_model')):
-                model_name_or_path = os.path.join(base_path, 'saved_model')
+            elif os.path.isdir(os.path.join(base_path, 'models', 'saved_model')):
+                model_name_or_path = os.path.join(base_path, 'models', 'saved_model')
                 
             _bi_model = SentenceTransformer(model_name_or_path, device=device_str)
             print("Bi-Encoder loaded.")

@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from models.inference import initialize_models, predict_similarity
+from inference.predict import initialize_models, predict_similarity
 
 app = FastAPI(
     title="Paraphrase & Semantic Similarity API",
