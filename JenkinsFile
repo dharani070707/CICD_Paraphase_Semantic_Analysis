@@ -7,9 +7,9 @@ pipeline {
 
     stages {
 
-        stage('Clone Repo') {
+        stage('Checkout Code') {
             steps {
-                git 'https://github.com/dharani070707/CICD_Paraphase_Semantic_Analysis.git'
+                checkout scm
             }
         }
 
@@ -19,7 +19,7 @@ pipeline {
                 docker build -t temp-backend backend/
                 docker run -d -p 8000:8000 --name test-backend temp-backend
 
-                # Wait for backend to be ready (max ~30s)
+                # Wait until backend is ready
                 for i in {1..30}; do
                   curl -sf http://localhost:8000/docs >/dev/null && break
                   sleep 1
@@ -37,7 +37,7 @@ pipeline {
                 venv/bin/pip install -r backend/requirements.txt
                 venv/bin/pip install requests
 
-                # Debug check (optional)
+                # Debug (optional)
                 venv/bin/python -c "import requests; print('requests OK')"
 
                 venv/bin/python tests/test50.py | tee result.txt
