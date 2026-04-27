@@ -61,30 +61,35 @@ pipeline {
             }
         }
 
-        stage('Check Pass Percentage') {
-            steps {
-                script {
-		
+	stage('Check Pass Percentage') {
+	    steps {
+		script {
+
+		    def resultLine = sh(
+			script: "grep 'Final Result' result.txt || true",
+			returnStdout: true
+		    ).trim()
+
+		    if (!resultLine) {
+			error "Test execution failed OR no result found"
+		    }
+
 		    def percent = sh(
-		        script: '''
-		        grep 'Final Result' result.txt | awk -F'[()]' '{print $2}' | sed 's/%//'
-		        ''',
-		        returnStdout: true
-		    ).trim()	
+			script: '''
+			grep 'Final Result' result.txt | awk -F'[()]' '{print $2}' | sed 's/%//'
+			''',
+			returnStdout: true
+		    ).trim()
 
-                    if (!percent) {
-                        error "Could not extract percentage from test output"
-                    }
+		    def percentage = percent.toFloat()
+		    echo "Pass Percentage: ${percentage}%"
 
-                    def percentage = percent.toFloat()
-                    echo "Pass Percentage: ${percentage}%"
-
-                    if (percentage < 60) {
-                        error "Less than 60% passed. Stopping pipeline."
-                    }
-                }
-            }
-        }
+		    if (percentage < 60) {
+			error "Less than 60% passed. Stopping pipeline."
+		    }
+		}
+	    }
+	}
 
         stage('Build Docker Images') {
             steps {
