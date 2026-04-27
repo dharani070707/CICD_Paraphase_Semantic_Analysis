@@ -13,32 +13,44 @@ pipeline {
             }
         }
 
-        stage('Start Backend for Testing') {
-            steps {
-                sh '''
-                docker build -t temp-backend backend/
-		docker run -d -p 8000:8000 -v $(pwd)/backend/models:/app/models --name test-backend temp-backend
+	stage('Start Backend for Testing') {
+	    steps {
+		sh '''
+		docker build -t temp-backend backend/
 
+		docker run -d -p 8000:8000 \
+		  -v $(pwd)/backend/models:/app/models \
+		  --name test-backend temp-backend
 
-                echo "Initial logs:"
-                sleep 5
-                docker logs test-backend
+		echo "Initial logs:"
+		sleep 5
+		docker logs test-backend
 
-                echo "Waiting for backend..."
+		echo "Waiting for backend to be ready..."
 
-                for i in {1..60}; do
-                  if curl -sf http://localhost:8000/docs >/dev/null; then
-                    echo "Backend is UP"
-                    break
-                  fi
-                  echo "Waiting... ($i)"
-                  sleep 2
-                done
+		for i in $(seq 1 60)
+		do
+		  if curl -sf http://localhost:8000/docs > /dev/null
+		  then
+		    echo "Backend is UP"
+		    break
+		  fi
 
-                curl -f http://localhost:8000/docs || (echo "Backend failed" && docker logs test-backend && exit 1)
-                '''
-            }
-        }
+		  echo "Still loading... $i"
+		  sleep 5
+		done
+
+		echo "Final check..."
+
+		if ! curl -f http://localhost:8000/docs > /dev/null
+		then
+		  echo "Backend failed after waiting"
+		  docker logs test-backend
+		  exit 1
+		fi
+		'''
+	    }
+	}
 
         stage('Run test50') {
             steps {
