@@ -23,9 +23,15 @@ The project natively supports Docker Compose (`docker-compose.yml`), allowing yo
 ### Kubernetes (K8s) Integration
 We integrated a full Kubernetes deployment strategy to allow for horizontal scaling and self-healing. All manifests are located in the `k8s/` directory:
 
-1. **Persistent Volume Claim (`backend-pvc.yaml`):** Secures 1Gi of persistent storage for the fine-tuned machine learning models, ensuring they aren't lost if a pod restarts.
-2. **Backend Deployment & Service (`backend-deployment.yaml`, `backend-service.yaml`):** Deploys the inference API using the `dharaniprasads/semantic-backend:latest` image and exposes it internally via a ClusterIP on port 8000.
-3. **Frontend Deployment & Service (`frontend-deployment.yaml`, `frontend-service.yaml`):** Deploys the web UI using the `dharaniprasads/semantic-frontend:latest` image and exposes it externally via a NodePort (`30000`) for easy accessibility.
+1.  **Persistent Volume Claim (`backend-pvc.yaml`):** Secures 1Gi of persistent storage for the fine-tuned machine learning models, ensuring they aren't lost if a pod restarts.
+2.  **ConfigMaps (`configmap.yaml`):** Centralizes application configuration (like `VITE_API_URL` and `MODEL_NAME`), allowing for easy environment management without rebuilding images.
+3.  **Backend Deployment & Service:**
+    *   **Probes:** Includes **Liveness** and **Readiness** probes. Readiness ensures the pod doesn't receive traffic until the ML model is fully loaded; Liveness automatically restarts the container if the API hangs.
+    *   **Resource Management:** Implements **CPU/Memory Limits and Requests** (e.g., 2Gi Memory limit) to ensure backend stability and prevent resource starvation.
+    *   **Service:** Exposed internally via a `ClusterIP` on port 8000.
+4.  **Frontend Deployment & Service:** Includes health checks and resource limits, exposed internally via `ClusterIP`.
+5.  **Advanced Ingress (`ingress.yaml`):** Provides a production-grade "Front Door." It uses **Hostname Routing** (`semantic-analysis.local`) to direct `/api` traffic to the backend and `/` traffic to the frontend UI.
+6.  **Automated CI/CD:** The updated **`JenkinsFile`** now handles the full deployment lifecycle, automatically applying these manifests to the cluster and performing a `rollout restart` to update running pods with new images.
 
 ---
 
