@@ -9,7 +9,7 @@ pipeline {
 
         stage('Clone Repo') {
             steps {
-                git branch: 'main', url: 'https://github.com/dharani070707/CICD_Paraphase_Semantic_Analysis.git'
+                git branch: 'feature/k8s-advanced-integration', url: 'https://github.com/dharani070707/CICD_Paraphase_Semantic_Analysis.git'
             }
         }
 
@@ -19,7 +19,7 @@ pipeline {
 		docker build -t temp-backend backend/
 
 		docker run -d -p 8000:8000 \
-		  -v $(pwd)/backend/models:/app/models \
+		  -v "$(pwd)/backend/models:/app/models" \
 		  --name test-backend temp-backend
 
 		echo "Initial logs:"
@@ -134,11 +134,15 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
+        stage('Deploy to Kubernetes') {
             steps {
                 sh '''
-                docker compose down
-                docker compose up -d
+                echo "Deploying to Kubernetes cluster..."
+                kubectl apply -f k8s/
+                
+                # Ensure the latest image is pulled by restarting the deployments
+                kubectl rollout restart deployment semantic-backend
+                kubectl rollout restart deployment semantic-frontend
                 '''
             }
         }
