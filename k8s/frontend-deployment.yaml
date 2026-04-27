@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: semantic-frontend
+  labels:
+    app: semantic-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: semantic-frontend
+  template:
+    metadata:
+      labels:
+        app: semantic-frontend
+    spec:
+      containers:
+      - name: semantic-frontend
+        image: dharaniprasads/semantic-frontend:latest
+        ports:
+        - containerPort: 80
