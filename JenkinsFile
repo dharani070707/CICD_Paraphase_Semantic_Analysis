@@ -1,15 +1,27 @@
 pipeline {
     agent any
 
+    options {
+        skipDefaultCheckout(true)
+    }
+
     environment {
         DOCKER_USER = "dharaniprasads"
     }
 
     stages {
 
-        stage('Clone Repo') {
+        stage('Checkout') {
             steps {
-                git 'https://github.com/dharani070707/CICD_Paraphase_Semantic_Analysis.git'
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: '*/main']],
+                    doGenerateSubmoduleConfigurations: false,
+                    extensions: [],
+                    userRemoteConfigs: [[
+                        url: 'https://github.com/dharani070707/CICD_Paraphase_Semantic_Analysis.git'
+                    ]]
+                ])
             }
         }
 
@@ -19,7 +31,7 @@ pipeline {
                 docker build -t temp-backend backend/
                 docker run -d -p 8000:8000 --name test-backend temp-backend
 
-                # Wait for backend to be ready (max ~30s)
+                # Wait until backend is ready
                 for i in {1..30}; do
                   curl -sf http://localhost:8000/docs >/dev/null && break
                   sleep 1
@@ -99,7 +111,7 @@ pipeline {
         stage('Deploy') {
             steps {
                 sh '''
-                docker compose down
+                docker compose down || true
                 docker compose up -d
                 '''
             }
