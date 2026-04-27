@@ -1,27 +1,15 @@
 pipeline {
     agent any
 
-    options {
-        skipDefaultCheckout(true)
-    }
-
     environment {
         DOCKER_USER = "dharaniprasads"
     }
 
     stages {
 
-        stage('Checkout') {
+        stage('Clone Repo') {
             steps {
-                checkout([
-                    $class: 'GitSCM',
-                    branches: [[name: '*/main']],
-                    doGenerateSubmoduleConfigurations: false,
-                    extensions: [],
-                    userRemoteConfigs: [[
-                        url: 'https://github.com/dharani070707/CICD_Paraphase_Semantic_Analysis.git'
-                    ]]
-                ])
+                git 'https://github.com/dharani070707/CICD_Paraphase_Semantic_Analysis.git'
             }
         }
 
@@ -31,7 +19,7 @@ pipeline {
                 docker build -t temp-backend backend/
                 docker run -d -p 8000:8000 --name test-backend temp-backend
 
-                # Wait until backend is ready
+                # Wait for backend to be ready (max ~30s)
                 for i in {1..30}; do
                   curl -sf http://localhost:8000/docs >/dev/null && break
                   sleep 1
@@ -44,10 +32,15 @@ pipeline {
             steps {
                 sh '''
                 python3 -m venv venv
-                . venv/bin/activate
-                pip install -r backend/requirements.txt
 
-                python tests/test50.py | tee result.txt
+                venv/bin/pip install --upgrade pip
+                venv/bin/pip install -r backend/requirements.txt
+                venv/bin/pip install requests
+
+                # Debug check (optional)
+                venv/bin/python -c "import requests; print('requests OK')"
+
+                venv/bin/python tests/test50.py | tee result.txt
                 '''
             }
         }
@@ -61,35 +54,35 @@ pipeline {
             }
         }
 
-	stage('Check Pass Percentage') {
-	    steps {
-		script {
+        stage('Check Pass Percentage') {
+            steps {
+                script {
 
-		    def resultLine = sh(
-			script: "grep 'Final Result' result.txt || true",
-			returnStdout: true
-		    ).trim()
+                    def resultLine = sh(
+                        script: "grep 'Final Result' result.txt || true",
+                        returnStdout: true
+                    ).trim()
 
-		    if (!resultLine) {
-			error "Test execution failed OR no result found"
-		    }
+                    if (!resultLine) {
+                        error "Test execution failed OR no result found"
+                    }
 
-		    def percent = sh(
-			script: '''
-			grep 'Final Result' result.txt | awk -F'[()]' '{print $2}' | sed 's/%//'
-			''',
-			returnStdout: true
-		    ).trim()
+                    def percent = sh(
+                        script: '''
+                        grep 'Final Result' result.txt | awk -F'[()]' '{print $2}' | sed 's/%//'
+                        ''',
+                        returnStdout: true
+                    ).trim()
 
-		    def percentage = percent.toFloat()
-		    echo "Pass Percentage: ${percentage}%"
+                    def percentage = percent.toFloat()
+                    echo "Pass Percentage: ${percentage}%"
 
-		    if (percentage < 60) {
-			error "Less than 60% passed. Stopping pipeline."
-		    }
-		}
-	    }
-	}
+                    if (percentage < 60) {
+                        error "Less than 60% passed. Stopping pipeline."
+                    }
+                }
+            }
+        }
 
         stage('Build Docker Images') {
             steps {
@@ -119,7 +112,7 @@ pipeline {
         stage('Deploy') {
             steps {
                 sh '''
-                docker compose down || true
+                docker compose down
                 docker compose up -d
                 '''
             }
