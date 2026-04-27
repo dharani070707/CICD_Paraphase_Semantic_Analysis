@@ -12,7 +12,7 @@ Covers:
 import requests
 import json
 
-API_URL = "http://localhost:5000/analyze"
+API_URL = "http://localhost:8000/analyze"
 
 EXAMPLES = [
     # --- POSITIVE PARAPHRASES (Expected: True) ---
