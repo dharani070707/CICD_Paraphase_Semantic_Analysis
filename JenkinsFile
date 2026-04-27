@@ -13,44 +13,55 @@ pipeline {
             }
         }
 
-        stage('Install Dependencies') {
+        stage('Start Backend for Testing') {
             steps {
                 sh '''
-                python3 -m venv venv
-                . venv/bin/activate
-                pip install -r backend/requirements.txt
+                docker build -t temp-backend backend/
+                docker run -d -p 8000:8000 --name test-backend temp-backend
+
+                # Wait for backend to be ready (max ~30s)
+                for i in {1..30}; do
+                  curl -sf http://localhost:8000/docs >/dev/null && break
+                  sleep 1
+                done
                 '''
             }
         }
 
         stage('Run test50') {
             steps {
-                script {
-                    sh '''
-                    . venv/bin/activate
-                    python tests/test50.py | tee result.txt
-                    '''
-                }
+                sh '''
+                python3 -m venv venv
+                . venv/bin/activate
+                pip install -r backend/requirements.txt
+
+                python tests/test50.py | tee result.txt
+                '''
+            }
+        }
+
+        stage('Stop Test Backend') {
+            steps {
+                sh '''
+                docker stop test-backend || true
+                docker rm test-backend || true
+                '''
             }
         }
 
         stage('Check Pass Percentage') {
             steps {
                 script {
+                    def percent = sh(
+                        script: "grep 'Final Result' result.txt | awk -F'[()]' '{print $2}' | sed 's/%//'",
+                        returnStdout: true
+                    ).trim()
 
-                    def passed = sh(script: "grep -i 'passed' result.txt | awk '{print $2}'", returnStdout: true).trim()
-                    def failed = sh(script: "grep -i 'failed' result.txt | awk '{print $2}'", returnStdout: true).trim()
-
-                    int pass = passed ? passed.toInteger() : 0
-                    int fail = failed ? failed.toInteger() : 0
-                    int total = pass + fail
-
-                    if (total == 0) {
-                        error "No test results found!"
+                    if (!percent) {
+                        error "Could not extract percentage from test output"
                     }
 
-                    def percentage = (pass * 100) / total
-
+                    def percentage = percent.toFloat()
                     echo "Pass Percentage: ${percentage}%"
 
                     if (percentage < 60) {
@@ -76,10 +87,8 @@ pipeline {
                     usernameVariable: 'USERNAME',
                     passwordVariable: 'PASSWORD'
                 )]) {
-
                     sh '''
                     echo $PASSWORD | docker login -u $USERNAME --password-stdin
-
                     docker push $DOCKER_USER/semantic-backend:latest
                     docker push $DOCKER_USER/semantic-frontend:latest
                     '''
@@ -94,6 +103,15 @@ pipeline {
                 docker compose up -d
                 '''
             }
+        }
+    }
+
+    post {
+        always {
+            sh '''
+            docker stop test-backend || true
+            docker rm test-backend || true
+            '''
         }
     }
 }
