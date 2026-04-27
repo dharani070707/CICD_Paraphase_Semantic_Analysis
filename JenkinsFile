@@ -27,7 +27,7 @@ pipeline {
                 echo "Waiting for backend..."
 
                 for i in {1..60}; do
-                  if curl -sf http://localhost:8000/analyze >/dev/null; then
+                  if curl -sf http://localhost:8000/docs >/dev/null; then
                     echo "Backend is UP"
                     break
                   fi
