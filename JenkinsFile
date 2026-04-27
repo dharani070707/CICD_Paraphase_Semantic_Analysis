@@ -19,7 +19,7 @@ pipeline {
 		docker build -t temp-backend backend/
 
 		docker run -d -p 8000:8000 \
-		  -v $(pwd)/backend/models:/app/models \
+		  -v "$(pwd)/backend/models:/app/models" \
 		  --name test-backend temp-backend
 
 		echo "Initial logs:"
