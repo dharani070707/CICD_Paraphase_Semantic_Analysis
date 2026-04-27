@@ -20,11 +20,11 @@ pipeline {
 
                 docker run -d -p 8000:8000 --name test-backend temp-backend
 
-                echo "Initial container logs:"
+                echo "Initial logs:"
                 sleep 5
                 docker logs test-backend
 
-                echo "Waiting for backend to be ready..."
+                echo "Waiting for backend..."
 
                 for i in {1..60}; do
                   if curl -sf http://localhost:8000/analyze >/dev/null; then
@@ -35,8 +35,7 @@ pipeline {
                   sleep 2
                 done
 
-                # Final hard check
-                curl -f http://localhost:8000/analyze || (echo "Backend failed to start" && docker logs test-backend && exit 1)
+                curl -f http://localhost:8000/analyze || (echo "Backend failed" && docker logs test-backend && exit 1)
                 '''
             }
         }
@@ -51,15 +50,13 @@ pipeline {
                 pip install -r backend/requirements.txt
                 pip install requests
 
-                echo "Ensuring backend still alive before tests..."
+                echo "Checking backend again..."
 
-                # SECOND WAIT (extra safety)
                 for i in {1..30}; do
                   if curl -sf http://localhost:8000/analyze >/dev/null; then
                     echo "Backend confirmed alive"
                     break
                   fi
-                  echo "Re-waiting... ($i)"
                   sleep 2
                 done
 
@@ -81,7 +78,7 @@ pipeline {
             steps {
                 script {
                     def percent = sh(
-                        script: "grep 'Final Result' result.txt | awk -F'[()]' '{print \\$2}' | sed 's/%//'",
+                        script: "grep 'Final Result' result.txt | cut -d'(' -f2 | cut -d'%' -f1",
                         returnStdout: true
                     ).trim()
 
