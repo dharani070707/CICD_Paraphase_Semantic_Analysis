@@ -9,7 +9,7 @@ pipeline {
 
         stage('Clone Repo') {
             steps {
-                git 'https://github.com/dharani070707/paraphase_semantic_analysis.git'
+                git 'https://github.com/dharani070707/CICD_Paraphase_Semantic_Analysis.git'
             }
         }
 
