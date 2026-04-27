@@ -17,6 +17,7 @@ spec:
       containers:
       - name: semantic-backend
         image: dharaniprasads/semantic-backend:latest
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8000
         envFrom:
@@ -43,7 +44,7 @@ spec:
           periodSeconds: 10
         volumeMounts:
         - name: models-volume
-          mountPath: /app/models
+          mountPath: /app/models/saved_model_mpnet
       volumes:
       - name: models-volume
         persistentVolumeClaim:
