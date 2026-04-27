@@ -64,10 +64,13 @@ pipeline {
         stage('Check Pass Percentage') {
             steps {
                 script {
-                    def percent = sh(
-                        script: "grep 'Final Result' result.txt | awk -F'[()]' '{print $2}' | sed 's/%//'",
-                        returnStdout: true
-                    ).trim()
+		
+		    def percent = sh(
+		        script: '''
+		        grep 'Final Result' result.txt | awk -F'[()]' '{print $2}' | sed 's/%//'
+		        ''',
+		        returnStdout: true
+		    ).trim()	
 
                     if (!percent) {
                         error "Could not extract percentage from test output"
