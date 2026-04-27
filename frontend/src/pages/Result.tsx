@@ -35,7 +35,7 @@ export default function Result() {
 
         console.log("API response:", res.data);
         setData(res.data);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("API Error:", err);
         setError("Failed to fetch result. Check backend/CORS.");
       } finally {

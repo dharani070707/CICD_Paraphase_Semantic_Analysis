@@ -1,0 +1,99 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_USER = "dharaniprasads"
+    }
+
+    stages {
+
+        stage('Clone Repo') {
+            steps {
+                git 'https://github.com/dharani070707/paraphase_semantic_analysis.git'
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                sh '''
+                python3 -m venv venv
+                . venv/bin/activate
+                pip install -r backend/requirements.txt
+                '''
+            }
+        }
+
+        stage('Run test50') {
+            steps {
+                script {
+                    sh '''
+                    . venv/bin/activate
+                    python tests/test50.py | tee result.txt
+                    '''
+                }
+            }
+        }
+
+        stage('Check Pass Percentage') {
+            steps {
+                script {
+
+                    def passed = sh(script: "grep -i 'passed' result.txt | awk '{print $2}'", returnStdout: true).trim()
+                    def failed = sh(script: "grep -i 'failed' result.txt | awk '{print $2}'", returnStdout: true).trim()
+
+                    int pass = passed ? passed.toInteger() : 0
+                    int fail = failed ? failed.toInteger() : 0
+                    int total = pass + fail
+
+                    if (total == 0) {
+                        error "No test results found!"
+                    }
+
+                    def percentage = (pass * 100) / total
+
+                    echo "Pass Percentage: ${percentage}%"
+
+                    if (percentage < 60) {
+                        error "Less than 60% passed. Stopping pipeline."
+                    }
+                }
+            }
+        }
+
+        stage('Build Docker Images') {
+            steps {
+                sh '''
+                docker build -t $DOCKER_USER/semantic-backend:latest backend/
+                docker build -t $DOCKER_USER/semantic-frontend:latest frontend/
+                '''
+            }
+        }
+
+        stage('Push to DockerHub') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'DockerHubCred',
+                    usernameVariable: 'USERNAME',
+                    passwordVariable: 'PASSWORD'
+                )]) {
+
+                    sh '''
+                    echo $PASSWORD | docker login -u $USERNAME --password-stdin
+
+                    docker push $DOCKER_USER/semantic-backend:latest
+                    docker push $DOCKER_USER/semantic-frontend:latest
+                    '''
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                sh '''
+                docker compose down
+                docker compose up -d
+                '''
+            }
+        }
+    }
+}

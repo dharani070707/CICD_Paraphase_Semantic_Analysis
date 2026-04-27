@@ -1,0 +1,29 @@
+version: "3.9"
+
+services:
+
+  backend:
+    image: dharaniprasads/semantic-backend:latest
+    container_name: semantic-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/models:/app/models
+    restart: always
+    networks:
+      - app-network
+
+  frontend:
+    image: dharaniprasads/semantic-frontend:latest
+    container_name: semantic-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: always
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

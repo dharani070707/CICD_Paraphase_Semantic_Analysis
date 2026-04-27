@@ -1,0 +1,11 @@
+venv/
+__pycache__/
+*.pyc
+.git
+.gitignore
+node_modules/
+models/
+*.log
+*.pt
+*.bin
+*.h5
