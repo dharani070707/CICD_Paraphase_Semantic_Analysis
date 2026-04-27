@@ -9,7 +9,7 @@ pipeline {
 
         stage('Clone Repo') {
             steps {
-                git branch: 'main', url: 'https://github.com/dharani070707/CICD_Paraphase_Semantic_Analysis.git'
+                git branch: 'feature/k8s-advanced-integration', url: 'https://github.com/dharani070707/CICD_Paraphase_Semantic_Analysis.git'
             }
         }
 
