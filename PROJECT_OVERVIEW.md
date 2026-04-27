@@ -1,5 +1,29 @@
 # Project Walkthrough: Paraphase Semantic Analysis & CI/CD Deployment
 
+## 🚀 Quick Start (Cross-Platform Deployment)
+To easily run this project locally on either **macOS** or **Ubuntu**, simply run the automated deployment script:
+
+```bash
+./startup.sh
+```
+
+**What this script does automatically:**
+1. Starts Minikube and enables the Ingress addon.
+2. Prompts for `sudo` to securely add `semantic-analysis.test` to your `/etc/hosts` file (bypassing macOS `.local` DNS issues).
+3. Connects to the internal Minikube Docker daemon.
+4. Dynamically builds the Docker images (it automatically detects if you are on macOS ARM64 or Ubuntu AMD64 and installs the correct libraries to keep images small and prevent crashes).
+5. Deploys the Kubernetes `.yaml` manifests and restarts the pods.
+
+**After the script finishes, you must start the network tunnel:**
+```bash
+minikube tunnel
+```
+*(Leave that terminal window open in the background).*
+
+Then simply open your browser and go to: **[http://semantic-analysis.test](http://semantic-analysis.test)**
+
+---
+
 ## 1. Project Overview
 
 The **Paraphrase Semantic Analysis** project is a comprehensive Machine Learning application designed to detect paraphrases and assess semantic similarity between text inputs. It leverages a fine-tuned Sentence Transformer (MPNet) optimized for complex language, including negation traps and adversarial word swaps.
