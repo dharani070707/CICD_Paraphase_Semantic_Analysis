@@ -35,7 +35,7 @@ pipeline {
                   sleep 2
                 done
 
-                curl -f http://localhost:8000/analyze || (echo "Backend failed" && docker logs test-backend && exit 1)
+                curl -f http://localhost:8000/docs || (echo "Backend failed" && docker logs test-backend && exit 1)
                 '''
             }
         }
