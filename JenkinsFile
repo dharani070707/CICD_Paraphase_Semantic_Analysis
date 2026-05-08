@@ -146,6 +146,23 @@ pipeline {
                 '''
             }
         }
+
+        stage('Deploy ELK Monitoring') {
+            steps {
+                sh '''
+                echo "Deploying ELK Monitoring Stack..."
+                kubectl apply -f k8s/monitoring/
+
+                echo "Waiting for Elasticsearch to be ready..."
+                kubectl rollout status deployment/elasticsearch --timeout=180s || true
+                kubectl rollout status deployment/logstash --timeout=120s || true
+                kubectl rollout status deployment/kibana --timeout=120s || true
+
+                echo "ELK Monitoring Stack deployed."
+                echo "Kibana will be available on NodePort 30601"
+                '''
+            }
+        }
     }
 
     post {

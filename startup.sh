@@ -47,12 +47,21 @@ echo "Building Frontend..."
 docker build -t dharaniprasads/semantic-frontend:latest frontend/
 
 # 5. Apply Kubernetes Manifests
-echo -e "${GREEN}[5/5] Deploying to Kubernetes...${NC}"
+echo -e "${GREEN}[5/6] Deploying application to Kubernetes...${NC}"
 kubectl apply -f k8s/
 
 echo "Restarting pods to ensure latest images are used..."
 kubectl rollout restart deployment semantic-backend
 kubectl rollout restart deployment semantic-frontend
+
+# 6. Deploy ELK Monitoring Stack
+echo -e "${GREEN}[6/6] Deploying ELK Monitoring Stack...${NC}"
+kubectl apply -f k8s/monitoring/
+
+echo "Waiting for Elasticsearch to become ready (this may take a minute)..."
+kubectl rollout status deployment/elasticsearch --timeout=180s || echo -e "${RED}Elasticsearch is still starting up. Check 'kubectl get pods' for status.${NC}"
+kubectl rollout status deployment/logstash --timeout=120s || true
+kubectl rollout status deployment/kibana --timeout=120s || true
 
 echo ""
 echo -e "${BLUE}==============================================${NC}"
@@ -64,5 +73,6 @@ echo -e "Please run the following command in your terminal and KEEP IT OPEN:"
 echo -e "${GREEN}minikube tunnel${NC}"
 echo ""
 echo -e "Then, open your web browser and navigate to:"
-echo -e "${GREEN}http://semantic-analysis.test${NC}"
+echo -e "  Application: ${GREEN}http://semantic-analysis.test${NC}"
+echo -e "  Kibana:      ${GREEN}http://localhost:30601${NC}  (or via minikube service kibana)"
 echo ""
