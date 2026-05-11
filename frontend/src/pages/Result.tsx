@@ -54,7 +54,7 @@ export default function Result() {
 
         {/* Header */}
         <h1 className="text-3xl font-bold mb-6 text-center">
-          🔍 Analysis Result
+          🔍 ParaSense AI Result
         </h1>
 
         {/* Input Display */}
