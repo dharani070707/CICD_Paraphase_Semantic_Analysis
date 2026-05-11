@@ -34,11 +34,11 @@ spec:
           httpGet:
             path: /
             port: 8000
-          initialDelaySeconds: 300
+          initialDelaySeconds: 30
           periodSeconds: 15
         readinessProbe:
           httpGet:
             path: /
             port: 8000
-          initialDelaySeconds: 300
+          initialDelaySeconds: 30
           periodSeconds: 10
