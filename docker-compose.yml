@@ -1,4 +1,3 @@
-version: "3.9"
 
 services:
 
@@ -9,7 +8,9 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./backend/models:/app/models
+      - ./backend/models/saved_model_v2:/app/models/saved_model_v2
+      - ./backend/models/saved_model_mpnet:/app/models/saved_model_mpnet
+      - ./backend/models/saved_model_minilm:/app/models/saved_model_minilm
     restart: always
     networks:
       - app-network

@@ -17,7 +17,8 @@ export default function Result() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const API_URL = "http://localhost:8000";
+  // Use relative URL so it works through both docker-compose (nginx proxy) and K8s Ingress
+  const API_URL = "/api";
 
   useEffect(() => {
     const fetchResult = async () => {

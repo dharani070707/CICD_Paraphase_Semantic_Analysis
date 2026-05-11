@@ -84,9 +84,9 @@ pipeline {
                 python3 -m venv venv
                 . venv/bin/activate
 
-                pip install --upgrade pip
-                pip install -r backend/requirements.txt
-                pip install requests
+                # test50.py only needs 'requests' — skip the heavy ML deps
+                pip install --upgrade pip -q
+                pip install requests -q
 
                 echo "Checking backend again..."
 
@@ -137,7 +137,8 @@ pipeline {
         stage('Build Docker Images') {
             steps {
                 sh '''
-                docker build -t $DOCKER_USER/semantic-backend:latest backend/
+                # Reuse the temp-backend image we already built instead of rebuilding
+                docker tag temp-backend $DOCKER_USER/semantic-backend:latest
                 docker build -t $DOCKER_USER/semantic-frontend:latest frontend/
                 '''
             }
