@@ -16,20 +16,46 @@ pipeline {
 	stage('Start Backend for Testing') {
 	    steps {
 		sh '''
+		# Clean up any leftover container from previous runs
+		docker stop test-backend 2>/dev/null || true
+		docker rm test-backend 2>/dev/null || true
+
 		docker build -t temp-backend backend/
 
+		# Cache saved models on host to speed up future runs.
+		# Mount individual model subdirs so we don't overwrite Python source files in models/.
+		mkdir -p /tmp/parasense-models/saved_model_v2
+		mkdir -p /tmp/parasense-models/saved_model_mpnet
+		mkdir -p /tmp/parasense-models/saved_model_minilm
+
 		docker run -d -p 8000:8000 \
-		  -v "/tmp/parasense-models:/app/models" \
+		  -v "/tmp/parasense-models/saved_model_v2:/app/models/saved_model_v2" \
+		  -v "/tmp/parasense-models/saved_model_mpnet:/app/models/saved_model_mpnet" \
+		  -v "/tmp/parasense-models/saved_model_minilm:/app/models/saved_model_minilm" \
 		  --name test-backend temp-backend
 
 		echo "Initial logs:"
-		sleep 5
+		sleep 10
 		docker logs test-backend
+
+		# Check if container crashed immediately
+		if ! docker ps --format '{{.Names}}' | grep -q test-backend; then
+		  echo "ERROR: Container crashed on startup!"
+		  docker logs test-backend
+		  exit 1
+		fi
 
 		echo "Waiting for backend to be ready (this can take up to 10 mins on first run)..."
 
 		for i in $(seq 1 120)
 		do
+		  # If container died, fail fast instead of looping
+		  if ! docker ps --format '{{.Names}}' | grep -q test-backend; then
+		    echo "ERROR: Container stopped unexpectedly!"
+		    docker logs test-backend
+		    exit 1
+		  fi
+
 		  if curl -sf http://localhost:8000/docs > /dev/null
 		  then
 		    echo "Backend is UP"
