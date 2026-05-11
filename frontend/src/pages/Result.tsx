@@ -18,6 +18,7 @@ export default function Result() {
   const [error, setError] = useState<string | null>(null);
 
   // Use relative URL so it works through both docker-compose (nginx proxy) and K8s Ingress
+  // Forced rebuild commit
   const API_URL = "/api";
 
   useEffect(() => {
