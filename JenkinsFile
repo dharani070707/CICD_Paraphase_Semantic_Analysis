@@ -19,16 +19,16 @@ pipeline {
 		docker build -t temp-backend backend/
 
 		docker run -d -p 8000:8000 \
-		  -v "$(pwd)/backend/models:/app/models" \
+		  -v "/tmp/parasense-models:/app/models" \
 		  --name test-backend temp-backend
 
 		echo "Initial logs:"
 		sleep 5
 		docker logs test-backend
 
-		echo "Waiting for backend to be ready..."
+		echo "Waiting for backend to be ready (this can take up to 10 mins on first run)..."
 
-		for i in $(seq 1 60)
+		for i in $(seq 1 120)
 		do
 		  if curl -sf http://localhost:8000/docs > /dev/null
 		  then
