@@ -4,9 +4,6 @@ __pycache__/
 .git
 .gitignore
 node_modules/
-models/saved_model_mpnet/
-models/saved_model_v2/
-models/saved_model_minilm/
 *.log
 *.pt
 *.bin

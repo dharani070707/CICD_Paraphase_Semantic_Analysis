@@ -22,16 +22,7 @@ pipeline {
 
 		docker build -t temp-backend backend/
 
-		# Cache saved models on host to speed up future runs.
-		# Mount individual model subdirs so we don't overwrite Python source files in models/.
-		mkdir -p /tmp/parasense-models/saved_model_v2
-		mkdir -p /tmp/parasense-models/saved_model_mpnet
-		mkdir -p /tmp/parasense-models/saved_model_minilm
-
 		docker run -d -p 8000:8000 \
-		  -v "/tmp/parasense-models/saved_model_v2:/app/models/saved_model_v2" \
-		  -v "/tmp/parasense-models/saved_model_mpnet:/app/models/saved_model_mpnet" \
-		  -v "/tmp/parasense-models/saved_model_minilm:/app/models/saved_model_minilm" \
 		  --name test-backend temp-backend
 
 		echo "Initial logs:"
@@ -91,7 +82,7 @@ pipeline {
                 echo "Checking backend again..."
 
                 for i in {1..30}; do
-                  if curl -sf http://localhost:8000/analyze >/dev/null; then
+                  if curl -sf http://localhost:8000/ >/dev/null; then
                     echo "Backend confirmed alive"
                     break
                   fi
