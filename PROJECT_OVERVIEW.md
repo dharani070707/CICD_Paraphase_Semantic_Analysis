@@ -57,6 +57,17 @@ We integrated a full Kubernetes deployment strategy to allow for horizontal scal
 5.  **Advanced Ingress (`ingress.yaml`):** Provides a production-grade "Front Door." It uses **Hostname Routing** (`semantic-analysis.local`) to direct `/api` traffic to the backend and `/` traffic to the frontend UI.
 6.  **Automated CI/CD:** The updated **`JenkinsFile`** now handles the full deployment lifecycle, automatically applying these manifests to the cluster and performing a `rollout restart` to update running pods with new images.
 
+### Observability & Centralized Logging (ELK Stack)
+To ensure operational visibility and debugging support, the system incorporates the **ELK Stack** (plus Filebeat) for centralized logging and monitoring. Think of it as a factory pipeline that turns raw text logs into actionable insights.
+
+1.  **Filebeat (The Courier)**: It runs as a background agent on our Kubernetes nodes. As soon as our **FastAPI Backend** or **Frontend** writes a log line, Filebeat immediately "harvests" it and ships it off to Logstash. It ensures that no logs are lost even if a container restarts.
+2.  **Logstash (The Processor)**: This is the "brain" of the pipeline. It takes raw data and transforms it. We use it to parse the **JSON logs** coming from the backend. It extracts the `similarity_score`, `is_paraphrase`, and `response_time_ms` fields so they become searchable variables rather than just lines of text.
+3.  **Elasticsearch (The Search Engine)**: It is a powerful, distributed database designed specifically for searching through massive amounts of data. It stores and indexes all our processed logs. Because it's an "indexed" storage, you can search for a specific error or a specific similarity score across millions of logs in milliseconds.
+4.  **Kibana (The Visual Dashboard)**: The web interface that sits on top of Elasticsearch. It allows you to create **real-time dashboards** with pie charts (e.g., "Paraphrase vs. Non-Paraphrase distribution") or line graphs (e.g., "API Latency over the last hour").
+
+**Why is this important?**
+Without this stack, if your application crashes in a cluster of 50 containers, you would have to manually log into each container to find the error. With the ELK stack, you just go to one URL (Kibana) and see everything in a single, beautiful dashboard.
+
 ---
 
 ## 3. Getting Started
@@ -99,12 +110,48 @@ To deploy the application to a Kubernetes cluster (e.g., Minikube, EKS, GKE):
 
 ---
 
-## 4. CI/CD & Automation
+## 4. End-to-End Deployment Journey (The "How it Works" Flow)
 
-The repository includes automation structures to maintain code quality and streamline updates:
-- **Jenkinsfile:** Contains declarative pipeline stages for building, testing, and deploying the application.
-- **Ansible:** Playbooks exist for configuration management of deployment servers.
-- **Tests Suite (`tests/`):** Automated tests ensure that the model correctly identifies edge cases like negation traps before any new deployment.
+When we start the deployment process, the system follows a precise sequence to ensure everything from the network layer to the machine learning model is perfectly synchronized.
 
-## 5. Future Improvement Plan
+### Step 1: Local Environment Preparation (`./startup.sh`)
+Everything begins with a single command. The `startup.sh` script:
+1.  **Orchestrator Check**: It verifies if **Minikube** is running. If not, it initializes the cluster and enables the **NGINX Ingress Addon**, which acts as the "front door" for our cluster.
+2.  **DNS & Routing**: It securely maps `semantic-analysis.test` to your local IP address in `/etc/hosts`. This allows you to use a real domain name instead of a cryptic IP address.
+3.  **Cross-Platform Image Building**: It detects your hardware (macOS ARM64 vs. Ubuntu AMD64) and builds optimized Docker images directly inside the Minikube environment. This ensures the ML libraries (like Torch and Transformers) are compiled correctly for your specific chip.
+
+### Step 2: Orchestration & Self-Healing (Kubernetes)
+Once images are ready, the Kubernetes manifests are applied:
+1.  **Deployment**: K8s spins up the Backend and Frontend pods. 
+2.  **Health Checks**: The **Readiness Probes** ensure the UI (Frontend) doesn't start sending requests to the Backend until the large MPNet model is fully loaded into RAM.
+3.  **Ingress Routing**: The Ingress Controller detects the new services and routes `http://semantic-analysis.test/api` to the Backend and `http://semantic-analysis.test/` to the React UI.
+
+### Step 3: Accessing the UI
+At this point, you run `minikube tunnel`. This creates a network bridge between your computer and the isolated K8s cluster. You can then open your browser and see the **ParaSense AI** interface ready for input.
+
+---
+
+## 5. The Automated Jenkins CI/CD Pipeline (Production Lifecycle)
+
+While `startup.sh` is for local setup, the **Jenkins Pipeline** is our production-grade automation engine. It follows a "Quality-First" approach defined in the `JenkinsFile`.
+
+### Stage 1: The Quality Gate (Smoke Testing)
+Unlike simple pipelines, we don't deploy unless the model passes a specific accuracy threshold:
+-   **Temporary Environment**: Jenkins builds a temporary backend container.
+-   **Validation Suite**: It runs `tests/test50.py`, which contains 50 complex semantic scenarios (negation traps, adversarial swaps).
+-   **The Gate**: If the pass percentage is **below 60%**, the pipeline **self-destructs** (fails) and prevents the deployment. This ensures that a "broken" or "dumb" model never reaches the users.
+
+### Stage 2: Containerization & Versioning
+Once the tests pass:
+-   **Docker Hub Push**: The images are tagged and pushed to **Docker Hub**. This creates a centralized "Golden Image" that any server in the world can pull.
+-   **Secure Credentials**: Jenkins uses encrypted credentials (`DockerHubCred`) to log in, ensuring our registry remains secure.
+
+### Stage 3: Rolling Update & Monitoring
+The final act is the deployment to the live cluster:
+-   **Zero-Downtime Rollout**: Jenkins executes `kubectl rollout restart`. Kubernetes performs a "Rolling Update," where it starts new pods before killing the old ones, ensuring users never see a "Service Unavailable" page.
+-   **Automated Monitoring**: Finally, the pipeline applies the ELK manifests (`k8s/monitoring/`). It doesn't just deploy the app; it also ensures the **Elasticsearch, Logstash, and Kibana** infrastructure is up and running to watch the new deployment.
+
+---
+
+## 6. Future Improvement Plan
 As outlined in `IMPROVEMENT_PLAN.md`, the next phase involves migrating to a Multi-Task Training approach utilizing Knowledge Distillation to achieve >85% universal accuracy across highly diverse domains.
